@@ -41,24 +41,24 @@ def fetch_klines_paginated(symbol: str, interval: str, start_ms: int, end_ms: in
     import time
     if end_ms is None:
         end_ms = int(time.time() * 1000)
-    
-    # Check cache — only fetch what's missing
+
+    # Check cache before fetching
     cached = _load_cache(symbol, interval)
-    if cached is not None and len(cached) > 0:
-        cached_start = int(cached["timestamp"].iloc[0].timestamp() * 1000)
-        cached_end = int(cached["timestamp"].iloc[-1].timestamp() * 1000)
-        # If cache covers our range (with 1h tolerance for recent data), use it
-        if cached_start <= start_ms and cached_end >= end_ms - 3600_000:
-            filtered = cached[cached["timestamp"] >= pd.Timestamp(start_ms, unit="ms")]
-            if len(filtered) > 0:
-                return filtered.reset_index(drop=True)
-        # Otherwise fetch from where cache ends
-        if cached_start <= start_ms:
+    if cached is not None and not cached.empty:
+        cached_start = int(cached["timestamp"].min().timestamp() * 1000)
+        cached_end = int(cached["timestamp"].max().timestamp() * 1000)
+        # If cache covers our range, use it
+        if cached_start <= start_ms and cached_end >= end_ms:
+            return cached[(cached["timestamp"] >= pd.Timestamp(start_ms, unit="ms")) & (cached["timestamp"] <= pd.Timestamp(end_ms, unit="ms"))].reset_index(drop=True)
+        # If cache is recent, adjust start_ms to fetch only what's new
+        interval_ms = 86400000 if interval == '1d' else 14400000
+        if cached_end > start_ms:
             start_ms = cached_end + 1
-    
+
     url = f"{BINANCE_BASE_URL}/klines"
     all_frames = []
     cursor = start_ms
+    print(f"DEBUG: Starting fetch loop with cursor={cursor}, end_ms={end_ms}") # DEBUG
     
     while cursor < end_ms:
         params = {
@@ -89,6 +89,10 @@ def fetch_klines_paginated(symbol: str, interval: str, start_ms: int, end_ms: in
             break
     
     if not all_frames:
+        # Nothing new fetched; return cached data if available
+        existing = _load_cache(symbol, interval)
+        if existing is not None and not existing.empty:
+            return existing.reset_index(drop=True)
         return pd.DataFrame()
     
     result = pd.concat(all_frames, ignore_index=True)

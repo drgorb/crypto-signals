@@ -19,12 +19,16 @@ MACD_SLOW = 26
 MACD_SIGNAL = 9
 ADX_PERIOD = 14
 
-# ========== v7 SIGNAL THRESHOLDS (strict — only cream of the crop) ==========
-# Only STRONG + TREND_FOLLOW signals; no STANDARD
+# ========== v7 SIGNAL THRESHOLDS ==========
 V7_RSI_OVERSOLD = 35         # not used (no STRONG signals)
 V7_RSI_OVERBOUGHT = 65       # not used (no STRONG signals)
-V7_VOLUME_THRESHOLD = 0.0    # disabled — no volume filter for trend-follow
+V7_VOLUME_THRESHOLD = 1.5    # volume surge filter re-enabled for high vol days
 V7_ADX_TREND_THRESHOLD = 25  # lowered for more trend-follow entries
+
+# ========== VOLATILITY FILTERS ==========
+V7_MIN_DAILY_VOLATILITY_PCT = 1.0  # only trade when daily range > 1%
+V7_HIGH_VOL_VOLUME_MULTIPLIER = 2.0  # require 2x volume on high vol days
+V7_ATR_STOP_MULTIPLIER = 1.75  # use 1.75x ATR for dynamic stops instead of fixed 2%
 V7_EMA_PULLBACK_PCT = 0.003  # price within 0.3% of 20-EMA
 
 # ========== MINIMUM ATR FILTER ==========
