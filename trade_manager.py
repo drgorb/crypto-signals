@@ -21,8 +21,8 @@ from data import fetch_klines, get_current_price
 from indicators import rsi, macd, atr, bollinger_bands, sma, volume_profile
 
 # === CONFIG ===
-CSV_PATH = "/home/mroon/crypto-trades.csv"
-EVENT_LOG_PATH = "/home/mroon/crypto-trades.csv"  # Same file — now an event log
+CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "positions.json")
+EVENT_LOG_PATH = "/home/mroon/crypto-trades.csv"
 FORECAST_PATH = "/tmp/tu_forecast.json"
 SYMBOLS = {"BTC/USD": "BTCUSDT", "ETH/USD": "ETHUSDT"}
 
@@ -106,17 +106,14 @@ def load_trades() -> List[Dict]:
         return []
     try:
         with open(CSV_PATH, 'r') as f:
-            return list(csv.DictReader(f))
+            return json.load(f)
     except Exception:
         return []
 
 
 def save_trades(trades: List[Dict]):
-    with open(CSV_PATH, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES, extrasaction='ignore')
-        writer.writeheader()
-        for t in trades:
-            writer.writerow(t)
+    with open(CSV_PATH, 'w') as f:
+        json.dump(trades, f, indent=2)
 
 
 def append_trade(trade: Dict):
