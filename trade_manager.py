@@ -22,6 +22,7 @@ from indicators import rsi, macd, atr, bollinger_bands, sma, volume_profile
 
 # === CONFIG ===
 CSV_PATH = "/home/mroon/crypto-trades.csv"
+EVENT_LOG_PATH = "/home/mroon/crypto-trades.csv"  # Same file — now an event log
 FORECAST_PATH = "/tmp/tu_forecast.json"
 SYMBOLS = {"BTC/USD": "BTCUSDT", "ETH/USD": "ETHUSDT"}
 
@@ -44,6 +45,47 @@ CSV_FIELDNAMES = [
     "stop_loss_price", "take_profit_price", "entry_reason", "target_change_pct",
     "risk_usd", "status", "exit_price", "exit_time", "pnl_usd"
 ]
+
+EVENT_LOG_FIELDS = [
+    "timestamp", "event_type", "symbol", "price", "pred_24h_price", "pred_24h_pct",
+    "rsi", "macd_cross", "trend", "bb_pct", "vol_ratio",
+    "action", "detail", "pnl_usd"
+]
+
+
+def log_event(event_type: str, symbol: str, price: float, ta: Dict,
+              forecast: Optional[Dict] = None, action: str = "", detail: str = "", pnl: float = 0):
+    """Append a row to the event log CSV."""
+    h24_price = ""
+    h24_pct = ""
+    if forecast:
+        f = forecast.get("forecasts", {}).get("24h", {})
+        h24_price = f.get("price", "")
+        h24_pct = f.get("change_pct", "")
+
+    row = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "event_type": event_type,
+        "symbol": symbol,
+        "price": round(price, 2) if price else "",
+        "pred_24h_price": round(h24_price, 2) if isinstance(h24_price, (int, float)) else h24_price,
+        "pred_24h_pct": round(h24_pct, 2) if isinstance(h24_pct, (int, float)) else h24_pct,
+        "rsi": round(ta.get("rsi", 0), 1) if ta else "",
+        "macd_cross": ta.get("macd_cross", "") if ta else "",
+        "trend": ta.get("trend", "") if ta else "",
+        "bb_pct": round(ta.get("bb_pct", 0), 3) if ta else "",
+        "vol_ratio": round(ta.get("vol_ratio", 0), 2) if ta else "",
+        "action": action,
+        "detail": detail,
+        "pnl_usd": round(pnl, 2) if pnl else "",
+    }
+
+    exists = os.path.exists(EVENT_LOG_PATH)
+    with open(EVENT_LOG_PATH, 'a', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=EVENT_LOG_FIELDS)
+        if not exists:
+            writer.writeheader()
+        writer.writerow(row)
 
 
 # === DATA LOADING ===
@@ -351,6 +393,8 @@ def main():
             except:
                 continue
 
+        forecast = forecasts.get(symbol)
+
         # Check exit
         exit_reason = check_exit(trade, price, ta)
         if exit_reason:
@@ -363,6 +407,8 @@ def main():
             trade["pnl_usd"] = str(round(pnl, 2))
             emoji = "💰" if pnl > 0 else "💸"
             results.append(f"{emoji} CLOSED {symbol} {trade['action']} — {exit_reason} @ ${price:,.2f} (P&L: ${pnl:+,.2f})")
+            log_event("CLOSE", symbol, price, ta, forecast, exit_reason,
+                      f"{trade['action']} closed. Entry=${entry:.2f}", pnl)
             modified = True
             continue
 
@@ -372,7 +418,16 @@ def main():
             old_sl = trade["stop_loss_price"]
             trade["stop_loss_price"] = str(new_sl)
             results.append(f"🔧 {symbol} SL tightened: ${old_sl} → ${new_sl}")
+            log_event("SL_ADJUST", symbol, price, ta, forecast, "TIGHTEN",
+                      f"SL {old_sl} → {new_sl}")
             modified = True
+        else:
+            # Log a HOLD event — no action but we checked
+            entry = float(trade["entry_price"])
+            shares = float(trade["shares"])
+            unrealized = (price - entry) * shares if trade["action"] == "BUY" else (entry - price) * shares
+            log_event("HOLD", symbol, price, ta, forecast, trade["action"],
+                      f"SL=${trade['stop_loss_price']} TP=${trade['take_profit_price']}", unrealized)
 
     # Save if modified
     if modified:
@@ -393,7 +448,8 @@ def main():
         if not ta:
             continue
 
-        new_trade = create_entry(symbol, forecasts[symbol], ta)
+        forecast = forecasts[symbol]
+        new_trade = create_entry(symbol, forecast, ta)
         if new_trade:
             append_trade(new_trade)
             results.append(
@@ -401,7 +457,13 @@ def main():
                 f"| TP ${new_trade['take_profit_price']} | SL ${new_trade['stop_loss_price']} "
                 f"| {new_trade['entry_reason']}"
             )
+            log_event("OPEN", symbol, new_trade["entry_price"], ta, forecast,
+                      new_trade["action"], new_trade["entry_reason"])
         else:
+            price = ta.get("price", 0)
+            h24 = forecast.get("forecasts", {}).get("24h", {})
+            log_event("SKIP", symbol, price, ta, forecast, "NONE",
+                      f"No signal. 24h pred={h24.get('change_pct', 0):+.1f}%")
             print(f"ℹ️  No signal for {symbol}")
 
     # Print summary
