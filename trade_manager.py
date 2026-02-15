@@ -117,12 +117,10 @@ def save_trades(trades: List[Dict]):
 
 
 def append_trade(trade: Dict):
-    exists = os.path.exists(CSV_PATH)
-    with open(CSV_PATH, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES, extrasaction='ignore')
-        if not exists:
-            writer.writeheader()
-        writer.writerow(trade)
+    """Add a new trade to the positions file (JSON list)."""
+    trades = load_trades()
+    trades.append(trade)
+    save_trades(trades)
 
 
 # === TECHNICAL ANALYSIS ===
