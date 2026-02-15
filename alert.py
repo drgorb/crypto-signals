@@ -26,7 +26,7 @@ def format_signal(sig):
     emoji = "🟢" if sig["type"] == "BUY" else "🔴"
     conviction = sig.get("conviction", "TREND_FOLLOW")
     tf = sig.get("timeframe", "15m")
-    sl_pct = "2%"
+    sl_pct = "2%"    # Updated for Binance VIP2
 
     msg = (
         f"{emoji} 📈 **{sig['type']} {sig['symbol']}** — {conviction} ({tf})\n\n"
@@ -36,7 +36,7 @@ def format_signal(sig):
         f"- **ADX:** {sig.get('adx', 'N/A')}\n"
         f"- **EMA-20:** ${sig.get('ema_20', 0):,.2f}\n"
         f"- **Timeframe:** {tf}\n"
-        f"- **Exit:** Trailing stop (breakeven at +1.5%, trail at +2%)\n\n"
+        f"- **Exit:** Trailing stop (breakeven at +0.4%, trail at +1.5%)\n\n"
         f"_Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}_"
     )
     return msg

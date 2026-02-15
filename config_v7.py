@@ -32,21 +32,22 @@ V7_ATR_STOP_MULTIPLIER = 1.75  # use 1.75x ATR for dynamic stops instead of fixe
 V7_EMA_PULLBACK_PCT = 0.003  # price within 0.3% of 20-EMA
 
 # ========== MINIMUM ATR FILTER ==========
-# Round-trip cost ~0.21%, need 1% net profit → move needs 1.21%
-# ATR should be at least 1.5% of price to ensure adequate volatility
-V7_MIN_ATR_PCT = 0.015  # 1.5% of price
+# Binance VIP2 round-trip cost ~0.16% (0.08%+0.08%) + slippage ~0.06% = 0.22%
+# Need 1% net profit → move needs 1.22%
+# ATR should be at least 1.8% of price to ensure adequate volatility
+V7_MIN_ATR_PCT = 0.018  # 1.8% of price (optimized for Binance VIP2)
 
 # ========== HIGHER TF CONFIRMATION ==========
 V7_HTF_SMA_PERIOD = 50  # 1h 50-SMA — price must be on right side
 
-# ========== TRAILING STOP CONFIG (wider — let trades breathe) ==========
+# ========== TRAILING STOP CONFIG (optimized for Binance VIP2) ==========
 TRAILING_15M = {
     "initial_sl_pct": 0.02,        # 2% initial stop loss
-    "breakeven_trigger": 0.015,    # move SL to breakeven at +1.5%
-    "trail_1_trigger": 0.02,       # start trailing at +2%
-    "trail_1_distance": 0.01,      # trail 1% behind
-    "trail_2_trigger": 0.03,       # tighter trail at +3%
-    "trail_2_distance": 0.0075,    # trail 0.75% behind
+    "breakeven_trigger": 0.004,    # move SL to breakeven at +0.4% (covers VIP2 fees)
+    "trail_1_trigger": 0.015,      # start trailing at +1.5%
+    "trail_1_distance": 0.008,     # trail 0.8% behind
+    "trail_2_trigger": 0.025,      # tighter trail at +2.5%
+    "trail_2_distance": 0.005,     # trail 0.5% behind
     "max_hold_candles": 672,       # 7 days on 15m
 }
 
@@ -59,10 +60,9 @@ V7_TREND_LEVERAGE = 1.0           # 1x for trend-follow
 V7_SL_COOLDOWN_CANDLES = 8  # wait 2 hours (8 × 15m) after SL
 
 # ========== FEE MODEL ==========
-# Taker scenario (Binance VIP1)
-TAKER_FEE_PCT = 0.00075   # 0.075% per side
-# Maker scenario
-MAKER_FEE_PCT = 0.0002    # 0.02% per side
+# Binance VIP2 fees (without BNB discount)
+TAKER_FEE_PCT = 0.0008    # 0.08% per side (VIP2)
+MAKER_FEE_PCT = 0.0008    # 0.08% per side (VIP2)
 # Slippage
 SLIPPAGE_PCT = 0.0003     # 0.03% per side
 

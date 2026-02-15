@@ -6,12 +6,12 @@ import time
 
 POSITIONS_FILE = os.path.join(os.path.dirname(__file__), "cache", "open_positions.json")
 
-# Trailing stop config (as fraction)
-BREAKEVEN_TRIGGER = 0.005    # move SL to breakeven at +0.5%
-TRAIL_TRIGGER_1 = 0.01       # start trailing at +1%
-TRAIL_PCT_1 = 0.005          # trail 0.5% behind
-TRAIL_TRIGGER_2 = 0.02       # tighten trail at +2%
-TRAIL_PCT_2 = 0.0075         # trail 0.75% behind
+# Trailing stop config (optimized for Binance VIP2)
+BREAKEVEN_TRIGGER = 0.004    # move SL to breakeven at +0.4% (covers VIP2 fees)
+TRAIL_TRIGGER_1 = 0.015      # start trailing at +1.5%
+TRAIL_PCT_1 = 0.008          # trail 0.8% behind
+TRAIL_TRIGGER_2 = 0.025      # tighten trail at +2.5%
+TRAIL_PCT_2 = 0.005          # trail 0.5% behind
 MAX_HOLD_HOURS = 48
 
 
@@ -36,7 +36,7 @@ def open_position(signal: dict) -> dict:
     direction = signal["type"]
     entry = signal["price"]
     tf = signal.get("timeframe", "15m")
-    initial_sl_pct = 0.01 if tf == "15m" else 0.005
+    initial_sl_pct = 0.02 if tf == "15m" else 0.01    # Optimized for Binance VIP2 fees
 
     if direction == "BUY":
         sl_price = entry * (1 - initial_sl_pct)
